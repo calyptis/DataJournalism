@@ -28,7 +28,7 @@ select_map_type = st.sidebar.selectbox(
 # KPI to visualise
 text = "Please choose the metric to visualise: "
 if select_map_type == "by Municipality":
-    select_kpi = st.sidebar.selectbox(text, set(VARIABLES_INV.keys()) - {"Municipality"})
+    select_kpi = st.sidebar.selectbox(text, set(VARIABLES_INV.keys()) - {"Municipality (de)", "Municipality (it)"})
 else:
     select_kpi = st.sidebar.selectbox(text, ["Number of Tourism Establishments"])
 kpi_col_name = VARIABLES_INV[select_kpi]
