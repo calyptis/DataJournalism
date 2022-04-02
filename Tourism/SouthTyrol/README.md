@@ -1,10 +1,34 @@
-# Objective
+# Introduction
 
 This project analyses the spatial distribution of tourism establishments in the province of South Tyrol, Italy, locally
 known as Südtirol or Alto Adige.
 
 # Example
-See the jupyter notebook [here](notebooks/Tourism%20in%20South%20Tyrol.ipynb). 
+See the jupyter notebook [here](notebooks/Tourism%20in%20South%20Tyrol.ipynb).
+
+# Set-up
+
+## 1 Get the code & set environmental variables
+
+The below instructions are for Linux or MacOS.
+
+```commandline
+git clone https://github.com/calyptis/DataJournalism.git
+cd DataJournalism/Tourism/SouthTyrol
+source prepare_env.sh
+```
+
+## 2. Obtain the data
+
+```commandline
+python src/api_calls.py
+```
+
+## 3. Run the dashboard
+
+```commandline
+streamlit run src/app.py
+```
 
 # Datasources
 - Shapefiles are obtained from the [Geocatalogue of South Tyrol](http://geokatalog.buergernetz.bz.it/geokatalog/#!). 

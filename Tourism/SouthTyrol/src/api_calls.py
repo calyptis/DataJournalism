@@ -5,12 +5,25 @@ import pandas as pd
 import os
 import numpy as np
 from scipy import stats
+import logging
 from config import (
-    RAW_DATA_API_DIR,
+    RAW_DATA_ROOM_API_CALL_DIR,
+    RAW_DATA_MAIN_API_CALL_DIR,
     PARSED_ACCOMM_FILE,
     PREPARED_ACCOMM_FILE,
-    ROOM_INFO_FILE
+    ROOM_INFO_FILE,
+    DIRS
 )
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
+MSG = "\n{}\n========"
 
 
 def download_data():
@@ -18,17 +31,21 @@ def download_data():
     Downloads accommodation data from the open data hub of South Tyrol.
     Saves paginated API results as JSON to disk.
     """
+    logging.info(MSG.format("Downloading tourism data"))
     page = "https://tourism.api.opendatahub.bz.it/v1/Accommodation"
     counter = 0
     while True:
+        if counter == 0:
+            logging.info(
+                "{:,} results broken into {:,} pages"
+                .format(data.get("TotalResults"), data.get("TotalPages"))
+            )
         if counter % 10 == 0:
-            print(f"Page number {counter + 1:,}")
+            logging.info(f"Page number {counter + 1:,}")
         with urllib.request.urlopen(page) as response:
             data = json.loads(response.read())
             page = data.get("NextPage")
-            json.dump(data, open(os.path.join(RAW_DATA_API_DIR, f"page_{counter}.json"), "w"))
-            if counter == 0:
-                print("{:,} results broken into {:,} pages".format(data.get("TotalResults"), data.get("TotalPages")))
+            json.dump(data, open(os.path.join(RAW_DATA_MAIN_API_CALL_DIR, f"page_{counter}.json"), "w"))
             counter += 1
             if not page:
                 break
@@ -38,17 +55,18 @@ def parse_data():
     """
     Parses paginated API results and saves information in a single file.
     """
-    files = glob.glob(os.path.join(RAW_DATA_API_DIR, "main_call/*.json"))
+    logging.info(MSG.format("Parsing tourism data"))
+    files = glob.glob(os.path.join(RAW_DATA_MAIN_API_CALL_DIR, "*.json"))
     parsed_data = []
     for file in files:
         entries = json.load(open(file, "r")).get("Items")
         for entry in entries:
-            parsed_data.append(parse_entry(entry, file))
+            parsed_data.append(_parse_entry(entry, file))
     df = pd.DataFrame(parsed_data)
     df.to_csv(PARSED_ACCOMM_FILE, index=False)
 
 
-def parse_entry(entry: dict, file: str = None) -> dict:
+def _parse_entry(entry: dict, file: str = None) -> dict:
     """
     Selects only most relevant information from an original API return object.
 
@@ -99,67 +117,75 @@ def parse_entry(entry: dict, file: str = None) -> dict:
     return parsed_entry
 
 
-def clean_data():
+def prepare_data():
     """
     Cleans the dataframe containing the information from parsed API calls on tourism establishments,
     by filtering out duplicates and entries without valid GPS coordinates.
+    In addition, room information is added.
     """
+    logging.info(MSG.format("Preparing data"))
     # Main file
     df = pd.read_csv(PARSED_ACCOMM_FILE)
     # File containing room and max occupancy info
     room_info = pd.read_csv(ROOM_INFO_FILE)
     dupl_cols = list(df.columns.difference(["file"]))
     # Remove duplicates
-    print(f"Number of duplicates: {df[dupl_cols].duplicated().sum():,}")
+    logging.info(f"Number of duplicates: {df[dupl_cols].duplicated().sum():,}")
     df.drop_duplicates(subset=dupl_cols, inplace=True)
     # Remove outliers in terms of GPS coordinates (e.g. those with Lat or Long equal to zero)
     mask = (np.abs(stats.zscore(df[["Latitude", "Longitude"]])) >= 0.5).all(axis=1)
-    print(f"Number of invalid GPS coordinates: {mask.sum():,}")
+    logging.info(f"Number of invalid GPS coordinates: {mask.sum():,}")
     df = df.loc[~mask].copy()
     # Merge with room info
     n = len(df)
+    df["Id"] = df["Id"].str.rstrip("_REDUCED")
     df = df.merge(room_info, on="Id", how="left")
     assert len(df) == n
     df.to_csv(PREPARED_ACCOMM_FILE, index=False)
 
 
-def download_room_info(overwrite: bool = False):
+def download_room_info():
     """
     Makes API calls to obtain information on rooms of tourism establishments.
-
-    Parameters
-    ----------
-    overwrite: Whether to overwrite existing downloaded information.
-               Can be useful when API calls are modified.
     """
+    logging.info(MSG.format("Downloading room information"))
+
     api_calls = 0
-    accommodation_ids = set(pd.read_csv(PREPARED_ACCOMM_FILE).Id.unique())
-    existing_ids = set(pd.read_csv(ROOM_INFO_FILE).Id.unique())
-    new_ids = accommodation_ids - existing_ids
-    if overwrite:
-        new_ids = accommodation_ids
-    print(f"API calls to make: {len(new_ids):,}")
+    if os.path.exists(PREPARED_ACCOMM_FILE):
+        # Use merged data to see which cleaned establishments ones we already have
+        accommodation_ids = set(pd.read_csv(PREPARED_ACCOMM_FILE).Id.str.rstrip("_REDUCED").unique())
+    else:
+        # Otherwise, start with the full list of establishments
+        accommodation_ids = set(pd.read_csv(PARSED_ACCOMM_FILE).Id.str.rstrip("_REDUCED").unique())
+    new_ids = accommodation_ids
+    if os.path.exists(ROOM_INFO_FILE):
+        # If we have already made some room info API calls, remove them from the set of calls to make
+        existing_ids = set(pd.read_csv(ROOM_INFO_FILE).Id.unique())
+        new_ids = accommodation_ids - existing_ids
+    logging.info(f"API calls to make: {len(new_ids):,}")
     results = []
     for i, accomm_id in enumerate(new_ids):
-        results.append(get_rooms(accomm_id))
+        results.append(_get_rooms(accomm_id))
         api_calls += 1
         if (api_calls % 200 == 0) | (i == len(new_ids) - 1):
             results_df = pd.DataFrame(results, columns=["Id", "TotalRooms", "MaxOccupancy"])
             results_df.to_csv(
-                os.path.join(*[RAW_DATA_API_DIR, "room_info", f"accommodations_nr_rooms_{api_calls}.csv"]),
+                os.path.join(RAW_DATA_ROOM_API_CALL_DIR, f"accommodations_nr_rooms_{api_calls}_{accomm_id}.csv"),
                 index=False
             )
             results = []
-    csv_files = glob.glob(os.path.join(*[RAW_DATA_API_DIR, "room_info", "accommodations_nr_rooms_*.csv"]))
+            logging.info(f"Made {api_calls} room info API calls")
+
+    csv_files = glob.glob(os.path.join(RAW_DATA_ROOM_API_CALL_DIR, "accommodations_nr_rooms_*.csv"))
     results_dfs = pd.concat([pd.read_csv(i) for i in csv_files])
     results_dfs.drop_duplicates(subset=["Id"], inplace=True)
-    if overwrite:
+    if not os.path.exists(ROOM_INFO_FILE):
         results_dfs.to_csv(ROOM_INFO_FILE, index=False, mode="a", header=False)
     else:
         results_dfs.to_csv(ROOM_INFO_FILE, index=False)
 
 
-def get_rooms(accommodation_id: str) -> tuple[str | int, ...]:
+def _get_rooms(accommodation_id: str) -> tuple:
     """
     Obtains room information for a given tourism establishment.
 
@@ -184,3 +210,20 @@ def get_rooms(accommodation_id: str) -> tuple[str | int, ...]:
         total_max_occupancy = int((nr_rooms * max_occupancy).sum())
         accommodation_info = tuple([accommodation_id, total_rooms, total_max_occupancy])
         return accommodation_info
+
+
+def prepare_dirs():
+    """
+    Creates directories defined in the config file.
+    """
+    for _dir in DIRS:
+        if not os.path.exists(_dir):
+            os.mkdir(_dir)
+
+
+if __name__ == '__main__':
+    prepare_dirs()
+    # download_data()
+    parse_data()
+    download_room_info()
+    prepare_data()

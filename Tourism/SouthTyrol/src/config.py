@@ -16,11 +16,31 @@ RAW_DATA_DIR = os.path.join(DATA_DIR, "raw_data")
 # Directory where results from API calls will be stored
 RAW_DATA_API_DIR = os.path.join(RAW_DATA_DIR, "api_calls")
 
+# Directory where results from main API calls are stored
+RAW_DATA_MAIN_API_CALL_DIR = os.path.join(RAW_DATA_API_DIR, "main_call")
+
+# Directory where results from the room API calls are stored
+RAW_DATA_ROOM_API_CALL_DIR = os.path.join(RAW_DATA_API_DIR, "room_info")
+
 # Directory where edited, i.e. prepared data, will be stored
 PREPARED_DATA_DIR = os.path.join(DATA_DIR, "prepared_data")
 
 # Directory where plots will be stored
 PLOT_DIR = os.path.join(MAIN_DIR, "plots")
+
+# Bundle all directories (in the right order)
+DIRS = [
+    # Root directories
+    DATA_DIR,
+    PLOT_DIR,
+    # Subdirectories
+    RAW_DATA_DIR,
+    PREPARED_DATA_DIR,
+    # Sub-subdirectories
+    RAW_DATA_API_DIR,
+    RAW_DATA_MAIN_API_CALL_DIR,
+    RAW_DATA_ROOM_API_CALL_DIR
+]
 
 # Prepared files
 # --------------
