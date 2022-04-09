@@ -1,19 +1,30 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import os
+import pickle
 from utils import (
     load_municipality_data, define_municipality_map,
     load_density_data, define_density_map, save_map
 )
-from config import PLOT_DIR, VARIABLES_INV
+from config import PLOT_DIR, VARIABLES_INV, MUNICIPALITY_FILE, DENSITY_FILE
 
 
 def get_data(selection):
-    # TODO: How can streamlit cache dict instead of pd.DataFrames?
+    # Note: In docker image => these files already exist
     if selection == "by Municipality":
-        return load_municipality_data()
+        if not os.path.exists(MUNICIPALITY_FILE):
+            df_municipality = load_municipality_data()
+            pickle.dump(df_municipality, open(MUNICIPALITY_FILE, "wb"))
+            return df_municipality
+        else:
+            return pickle.load(open(MUNICIPALITY_FILE, "rb"))
     elif selection == "by GPS":
-        return load_density_data()
+        if not os.path.exists(DENSITY_FILE):
+            d_density = load_density_data()
+            pickle.dump(d_density, open(DENSITY_FILE, "wb"))
+            return d_density
+        else:
+            return pickle.load(open(DENSITY_FILE, "rb"))
 
 
 app_title = 'Tourism in South Tyrol'
@@ -41,7 +52,7 @@ else:
 # --------- Generate Visualisations
 # For now Streamlit does not support Bokeh plots (dependency issues)
 # Therefore save plot as HTML
-filename = os.path.join(PLOT_DIR, f"{select_map_type} - {select_kpi}")
+filename = os.path.join(PLOT_DIR, f"{select_map_type} - {select_kpi} - {str(select_all_kpis_tooltip)}")
 if not os.path.exists(filename + ".html"):
 
     tourism_data = get_data(select_map_type)
@@ -58,7 +69,6 @@ if not os.path.exists(filename + ".html"):
         visualisation = define_density_map(**tourism_data)
     else:
         raise NotImplementedError()
-
     save_map(visualisation, filename, filetype="html")
 
 # --------- Main Page

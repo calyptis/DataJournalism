@@ -25,6 +25,9 @@ RAW_DATA_ROOM_API_CALL_DIR = os.path.join(RAW_DATA_API_DIR, "room_info")
 # Directory where edited, i.e. prepared data, will be stored
 PREPARED_DATA_DIR = os.path.join(DATA_DIR, "prepared_data")
 
+# Directory where pickle files for the dashboard are stored
+DASHBOARD_DATA_DIR = os.path.join(DATA_DIR, "dashboard_data")
+
 # Directory where plots will be stored
 PLOT_DIR = os.path.join(MAIN_DIR, "plots")
 
@@ -47,6 +50,11 @@ DIRS = [
 PARSED_ACCOMM_FILE = os.path.join(PREPARED_DATA_DIR, "accommodations_parsed.csv")
 PREPARED_ACCOMM_FILE = os.path.join(PREPARED_DATA_DIR, "accommodations_cleaned.csv")
 ROOM_INFO_FILE = os.path.join(PREPARED_DATA_DIR, "accommodation_rooms.csv")
+
+# Dashboard files
+# ---------------
+MUNICIPALITY_FILE = os.path.join(DASHBOARD_DATA_DIR, "municipality.pickle")
+DENSITY_FILE = os.path.join(DASHBOARD_DATA_DIR, "density.pickle")
 
 # Variables
 # ---------

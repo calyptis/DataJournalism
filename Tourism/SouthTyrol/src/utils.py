@@ -6,7 +6,11 @@ import geoviews as gv
 from bokeh.models import HoverTool
 import numpy as np
 from sklearn.neighbors import KernelDensity
-from src.config import RAW_DATA_DIR, PREPARED_ACCOMM_FILE, VARIABLES_INFO
+import pickle
+from config import (
+    RAW_DATA_DIR, PREPARED_ACCOMM_FILE, VARIABLES_INFO,
+    MUNICIPALITY_FILE, DENSITY_FILE
+)
 
 
 def load_municipality_data() -> pd.DataFrame:
@@ -83,9 +87,15 @@ def define_municipality_map(
     visualisation: Bokeh choropleth map at municipality level with the colouring defined by the `color_col` variable.
     """
 
-    if tooltip_all_kpis:
+    if not tooltip_all_kpis:
         v = VARIABLES_INFO[color_col]
+        # KPI to show
         tooltips = [(v[0], "@" + color_col + v[1])]
+        # Keep municipality info no matter what
+        municipality_info = {k: v for k, v in VARIABLES_INFO.items() if k in ["NAME_D", "NAME_I"]}
+        tooltips += [
+            (v[0], "@" + k + v[1]) for k, v in municipality_info.items()
+        ]
     else:
         tooltips = [
             (v[0], "@" + k + v[1]) for k, v in VARIABLES_INFO.items()
@@ -298,3 +308,10 @@ def get_kernel_density(df: pd.DataFrame, basemap: gpd.GeoDataFrame) -> Tuple[np.
     z_grid_masked = np.where(coords.flag, coords.Z, np.NaN).reshape(z_grid.shape)
     kernel_estimates = (y_grid, x_grid, z_grid_masked)
     return kernel_estimates
+
+
+if __name__ == '__main__':
+    d_density = load_density_data()
+    df_municipality = load_municipality_data()
+    pickle.dump(d_density, open(DENSITY_FILE, "wb"))
+    pickle.dump(df_municipality, open(MUNICIPALITY_FILE, "wb"))

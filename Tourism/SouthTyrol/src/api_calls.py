@@ -1,3 +1,4 @@
+from typing import Union
 import json
 import urllib.request
 import glob
@@ -185,13 +186,14 @@ def download_room_info():
         results_dfs.to_csv(ROOM_INFO_FILE, index=False)
 
 
-def _get_rooms(accommodation_id: str) -> tuple:
+def _get_rooms(accommodation_id: str, debug: bool = False) -> Union[dict, tuple]:
     """
     Obtains room information for a given tourism establishment.
 
     Parameters
     ----------
     accommodation_id: ID of the tourism establishment
+    debug: Whether to enter debug mode and return the results of the API call as-is.
 
     Returns
     -------
@@ -204,6 +206,8 @@ def _get_rooms(accommodation_id: str) -> tuple:
     with urllib.request.urlopen(url) as response:
         content = response.read()
         data = json.loads(content)
+        if debug:
+            return data
         nr_rooms = np.array([d["RoomQuantity"] for d in data])
         max_occupancy = np.array([d["Roommax"] for d in data])
         total_rooms = int(nr_rooms.sum())
