@@ -8,9 +8,6 @@ EXPOSE 8080
 COPY requirements.txt app/requirements.txt
 
 # Install all requirements
-RUN apt-get update && \
-    apt-get install gcc -y && \
-    apt-get clean
 RUN conda config --append channels conda-forge
 RUN conda install --file app/requirements.txt
 
