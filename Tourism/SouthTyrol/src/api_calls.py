@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple
 import json
 import urllib.request
 import glob
@@ -6,14 +6,17 @@ import pandas as pd
 import os
 import numpy as np
 from scipy import stats
+import geopandas as gpd
 import logging
-from config import (
+from .config import (
     RAW_DATA_ROOM_API_CALL_DIR,
     RAW_DATA_MAIN_API_CALL_DIR,
     PARSED_ACCOMM_FILE,
     PREPARED_ACCOMM_FILE,
     ROOM_INFO_FILE,
-    DIRS
+    DIRS,
+    MAPPING_CATEGORY_SINGULAR_PLURAL,
+    RAW_DATA_DIR
 )
 
 logging.basicConfig(
@@ -137,9 +140,52 @@ def prepare_data():
     mask = (np.abs(stats.zscore(df[["Latitude", "Longitude"]])) >= 0.5).all(axis=1)
     logging.info(f"Number of invalid GPS coordinates: {mask.sum():,}")
     df = df.loc[~mask].copy()
+    # Parse category information
+    df["AccoCategoryRating"] = (
+        df
+        .AccoCategoryId
+        .apply(lambda x: _parse_category(x)[0])
+        .str
+        .title()
+    )
+    df["AccoCategoryType"] = (
+        df
+        .AccoCategoryId
+        .apply(lambda x: _parse_category(x)[1])
+        .replace(MAPPING_CATEGORY_SINGULAR_PLURAL)
+        .str.title()
+    )
+    # Get OHE
+    n = len(df)
+    df = (
+        df
+        .merge(
+            pd.get_dummies(
+                df[["Id", "AccoCategoryType", "AccoCategoryRating"]],
+                columns=["AccoCategoryType", "AccoCategoryRating"]
+            ),
+            on="Id",
+            how="inner"
+        )
+    )
+    assert len(df) == n
+    # Add municipality info
+    n = len(df)
+    df_geo = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="EPSG:4326")
+    population = gpd.read_file(
+        os.path.join(
+            RAW_DATA_DIR,
+            "shapefiles/FME_12060355_1631560092259_118556/DownloadService/OfficialResidentPopulation_polygon.shp"
+        ),
+        crs="EPSG:4326"
+    )
+    population = population.to_crs("EPSG:4326")
+    population.drop_duplicates(subset=["NAME_D"], inplace=True)
+    df = gpd.sjoin(df_geo, population[["NAME_D", "NAME_I", "geometry"]], how="left", op="within")
+    assert len(df) == n
     # Merge with room info
     n = len(df)
-    df["Id"] = df["Id"].str.rstrip("_REDUCED")
+    df["Id"] = df["Id"].str.rstrip("_REDUCED")  # New IDs end with "_REDUCED"
     df = df.merge(room_info, on="Id", how="left")
     assert len(df) == n
     df.to_csv(PREPARED_ACCOMM_FILE, index=False)
@@ -214,6 +260,27 @@ def _get_rooms(accommodation_id: str, debug: bool = False) -> Union[dict, tuple]
         total_max_occupancy = int((nr_rooms * max_occupancy).sum())
         accommodation_info = tuple([accommodation_id, total_rooms, total_max_occupancy])
         return accommodation_info
+
+
+def _parse_category(x: str) -> Tuple[Union[str, None], Union[str, None]]:
+    """
+
+    Parameters
+    ----------
+    x: Category, such as "3sstars"
+
+    Returns
+    -------
+    Category rank and type, e.g. (3s, stars)
+    """
+    if x != "Not categorized":
+        if "ss" in x:
+            # 4s or 3s hotels
+            return x[:2], x[2:]
+        else:
+            return x[:1], x[1:]
+    else:
+        return None, None
 
 
 def prepare_dirs():

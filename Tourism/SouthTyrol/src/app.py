@@ -2,11 +2,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 import os
 import pickle
-from utils import (
+from .utils import (
     load_municipality_data, define_municipality_map,
     load_density_data, define_density_map, save_map
 )
-from config import PLOT_DIR, VARIABLES_INV, MUNICIPALITY_FILE, DENSITY_FILE
+from .config import PLOT_DIR, VARIABLES_INV, MUNICIPALITY_FILE, DENSITY_FILE
 
 
 def get_data(selection):
@@ -39,7 +39,10 @@ select_map_type = st.sidebar.selectbox(
 # KPI to visualise
 text = "Please choose the metric to visualise: "
 if select_map_type == "by Municipality":
-    select_kpi = st.sidebar.selectbox(text, set(VARIABLES_INV.keys()) - {"Municipality (de)", "Municipality (it)"})
+    select_kpi = st.sidebar.selectbox(
+        text,
+        [i for i in VARIABLES_INV.keys() if i not in ["Municipality (de)", "Municipality (it)"]]
+    )
 else:
     select_kpi = st.sidebar.selectbox(text, ["Number of Tourism Establishments"])
 kpi_col_name = VARIABLES_INV[select_kpi]
@@ -48,7 +51,6 @@ if select_map_type == "by Municipality":
     select_all_kpis_tooltip = st.sidebar.radio("Include all available KPIs in tooltip: ", [True, False])
 else:
     select_all_kpis_tooltip = None
-
 # --------- Generate Visualisations
 # For now Streamlit does not support Bokeh plots (dependency issues)
 # Therefore save plot as HTML

@@ -64,10 +64,21 @@ VARIABLES_INFO = {
     "nr_establishments_per_thousand_pop": ("Number of Tourism Establishments per 1,000 Inhabitants", "{,}"),
     "total_occupancy": ("Total Occupancy", "{,}"),
     "total_nr_rooms": ("Total Number of Rooms", "{,}"),
+    "total_nr_rooms_per_thousand_pop": ("Number of Rooms per 1,000 Inhabitants", "{,}"),
     "avg_occupancy": ("Mean Occupancy of Tourism Establishments", "{0.1f}"),
     "total_occupancy_per_thousand_pop": ("Total Occupancy per 1,000 Inhabitants", "{,}"),
     "NAME_D": ("Municipality (de)", ""),
-    "NAME_I": ("Municipality (it)", "")
+    "NAME_I": ("Municipality (it)", ""),
+    "share_1_rating": ("Share of Establishments with Rating 1", "{0.2f}%"),
+    "share_2_rating": ("Share of Establishments with Rating 2", "{0.2f}%"),
+    "share_3_rating": ("Share of Establishments with Rating 3", "{0.2f}%"),
+    "share_3s_rating": ("Share of Establishments with Rating 3S", "{0.2f}%"),
+    "share_4_rating": ("Share of Establishments with Rating 4", "{0.2f}%"),
+    "share_4s_rating": ("Share of Establishments with Rating 4S", "{0.2f}%"),
+    "share_5_rating": ("Share of Establishments with Rating 5", "{0.2f}%"),
+    "share_stars": ("Share of Stars Establishments", "{0.2f}%"),
+    "share_suns": ("Share of Suns Establishments", "{0.2f}%"),
+    "share_flowers": ("Share of Flowers Establishments", "{0.2f}%")
 }
 # KPI: Name mapping to be used when creating visualisations
 # Allow KPIs to be rendered with nicely formatted names
@@ -75,3 +86,9 @@ VARIABLES_PRETTY = {k: v[0] for k, v in VARIABLES_INFO.items()}
 # Name: KPI mapping to be used in the streamlit app
 # Allow users to select KPI using nicely formatted names
 VARIABLES_INV = {v[0]: k for k, v in VARIABLES_INFO.items()}
+
+MAPPING_CATEGORY_SINGULAR_PLURAL = {
+    "flower": "flowers",
+    "star": "stars",
+    "sun": "suns"
+}

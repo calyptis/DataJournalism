@@ -7,7 +7,7 @@ from bokeh.models import HoverTool
 import numpy as np
 from sklearn.neighbors import KernelDensity
 import pickle
-from config import (
+from .config import (
     RAW_DATA_DIR, PREPARED_ACCOMM_FILE, VARIABLES_INFO,
     MUNICIPALITY_FILE, DENSITY_FILE
 )
@@ -26,7 +26,7 @@ def load_municipality_data() -> pd.DataFrame:
 
     # Load accommodation data
     df = pd.read_csv(PREPARED_ACCOMM_FILE)
-    df_geo = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="EPSG:4326")
+    df_geo = gpd.GeoDataFrame(df, crs="EPSG:4326")
 
     # Load population data
     population = gpd.read_file(
@@ -39,26 +39,39 @@ def load_municipality_data() -> pd.DataFrame:
     population = population.to_crs("EPSG:4326")
     population.drop_duplicates(subset=["NAME_D"], inplace=True)
 
-    # Merge data sources
-    df_merged = gpd.sjoin(df_geo, population[["NAME_D", "NAME_I", "geometry"]], how="left", op="within")
-
     # Aggregate information on municipality level
     tourism_df = (
-        df_merged
+        df_geo
         .groupby(["NAME_D", "NAME_I"])
         .agg(
             nr_establishments=("Id", "count"),
             total_occupancy=("MaxOccupancy", "sum"),
             total_nr_rooms=("TotalRooms", "sum"),
-            avg_occupancy=("MaxOccupancy", "mean")
+            avg_occupancy=("MaxOccupancy", "mean"),
+            # Add shares for category rating & type
+            share_1_rating=("AccoCategoryRating_1", "sum"),
+            share_2_rating=("AccoCategoryRating_2", "sum"),
+            share_3_rating=("AccoCategoryRating_3", "sum"),
+            share_3s_rating=("AccoCategoryRating_3S", "sum"),
+            share_4_rating=("AccoCategoryRating_4", "sum"),
+            share_4s_rating=("AccoCategoryRating_4S", "sum"),
+            share_5_rating=("AccoCategoryRating_5", "sum"),
+            share_stars=("AccoCategoryType_Stars", "sum"),
+            share_suns=("AccoCategoryType_Suns", "sum"),
+            share_flowers=("AccoCategoryType_Flowers", "sum"),
         )
         .reset_index()
-        .merge(population[["NAME_D", "geometry", "BW_WOHNBEV"]], on="NAME_D", how="left")
+        .merge(population[["NAME_D", "BW_WOHNBEV", "geometry"]], on="NAME_D", how="left")
         .assign(
             nr_establishments_per_thousand_pop=lambda x: x.nr_establishments / (x.BW_WOHNBEV / 1_000),
-            total_occupancy_per_thousand_pop=lambda x: x.total_occupancy / (x.BW_WOHNBEV / 1_000)
+            total_occupancy_per_thousand_pop=lambda x: x.total_occupancy / (x.BW_WOHNBEV / 1_000),
+            total_nr_rooms_per_thousand_pop=lambda x: x.total_nr_rooms / (x.BW_WOHNBEV / 1_000)
         )
     )
+    # Make sure share columns are actually in percentages
+    share_cols = [i for i in tourism_df.columns if i.startswith("share_")]
+    for c in share_cols:
+        tourism_df[c] = tourism_df[c] / tourism_df.nr_establishments * 100
     assert tourism_df.NAME_D.nunique() == len(tourism_df)
 
     # Ensure dataframe is a geo-dataframe
@@ -108,7 +121,7 @@ def define_municipality_map(
             data,
             vdims=list(VARIABLES_INFO.keys())
         )
-        .opts(
+            .opts(
             tools=[hover], width=900, height=600, color=color_col,
             colorbar=True, toolbar="below", xaxis=None, yaxis=None,
             title=title,
@@ -203,39 +216,39 @@ def define_density_map(
     reference_locations_labels = gv.Labels(reference_locations_labels, ["Longitude", "Latitude"], ["City"])
 
     geomap = (
-        basemap
-        .opts(
-            colorbar=False, fill_color="rgba(255, 255, 255, 0.3)",
-            color_index=None, line_color="black", tools=[]
-        )
-        *
-        establishments
-        .opts(
-            size=10,
-            marker="dot",
-            tools=[]
-        )
-        *
-        gv.FilledContours((y_grid, x_grid, z_grid_masked))
-        .opts(
-            cmap='PuBu',
-            fill_alpha=0.8,
-            # levels=levels,
-            line_color=None,
-            tools=[]
-        )
-        *
-        reference_locations
-        .opts(
-            size=10,
-            tools=[],
-            color="black",
-        )
-        *
-        reference_locations_labels
-        .opts(
-            text_color="white"
-        )
+            basemap
+            .opts(
+                colorbar=False, fill_color="rgba(255, 255, 255, 0.3)",
+                color_index=None, line_color="black", tools=[]
+            )
+            *
+            establishments
+            .opts(
+                size=10,
+                marker="dot",
+                tools=[]
+            )
+            *
+            gv.FilledContours((y_grid, x_grid, z_grid_masked))
+            .opts(
+                cmap='PuBu',
+                fill_alpha=0.8,
+                # levels=levels,
+                line_color=None,
+                tools=[]
+            )
+            *
+            reference_locations
+            .opts(
+                size=10,
+                tools=[],
+                color="black",
+            )
+            *
+            reference_locations_labels
+            .opts(
+                text_color="white"
+            )
     ).opts(
         width=900, height=600, xaxis=None, yaxis=None, toolbar='below',
         title='Spatial Density of Tourism Establishments'
