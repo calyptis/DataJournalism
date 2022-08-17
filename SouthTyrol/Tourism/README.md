@@ -3,6 +3,8 @@
 This project analyses the spatial distribution of tourism establishments in the province of South Tyrol, Italy, locally
 known as Südtirol or Alto Adige.
 
+![density map of tourism establishments in South Tyrol](assets/density_map.png "Title")
+
 # Example
 See the jupyter notebook [here](notebooks/Tourism%20in%20South%20Tyrol.ipynb).
 
