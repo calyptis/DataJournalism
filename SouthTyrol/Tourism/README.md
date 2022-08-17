@@ -6,6 +6,11 @@ known as Südtirol or Alto Adige.
 # Example
 See the jupyter notebook [here](notebooks/Tourism%20in%20South%20Tyrol.ipynb).
 
+# Visualisations
+
+See this [Tableau workbook](https://public.tableau.com/app/profile/lucas.chizzali/viz/TourisminSouthTyrol/Heatmap?publish=yes)
+or the more extensive Streamlit app below.
+
 # Set-up
 
 ## 1 Get the code & set environmental variables
@@ -22,6 +27,12 @@ source prepare_env.sh
 
 ```commandline
 python src/api_calls.py
+```
+
+## 3. Prepare the data
+
+```commandline
+python src/prepare_data.py
 ```
 
 ## 3. Run the dashboard
