@@ -35,7 +35,7 @@ python src/api_calls.py
 python src/prepare_data.py
 ```
 
-## 3. Run the dashboard
+## 4. Run the dashboard
 
 ```commandline
 streamlit run src/app.py
