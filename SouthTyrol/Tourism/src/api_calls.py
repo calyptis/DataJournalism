@@ -16,7 +16,7 @@ from config import (
     ROOM_INFO_FILE,
     DIRS,
     MAPPING_CATEGORY_SINGULAR_PLURAL,
-    RAW_DATA_DIR
+    POPULATION_SHAPEFILE
 )
 
 logging.basicConfig(
@@ -172,13 +172,7 @@ def prepare_data():
     # Add municipality info
     n = len(df)
     df_geo = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df.Longitude, df.Latitude), crs="EPSG:4326")
-    population = gpd.read_file(
-        os.path.join(
-            RAW_DATA_DIR,
-            "shapefiles/FME_12060355_1631560092259_118556/DownloadService/OfficialResidentPopulation_polygon.shp"
-        ),
-        crs="EPSG:4326"
-    )
+    population = gpd.read_file(POPULATION_SHAPEFILE, crs="EPSG:4326")
     population = population.to_crs("EPSG:4326")
     population.drop_duplicates(subset=["NAME_D"], inplace=True)
     df = gpd.sjoin(df_geo, population[["NAME_D", "NAME_I", "geometry"]], how="left", op="within")
