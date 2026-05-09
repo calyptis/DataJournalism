@@ -1,7 +1,7 @@
 # About this repository
 This repository contains several exploratory analyses in the style of Data Journalism.
 
-# Examples
+# Projects
 
 ## Tourism
 
