@@ -40,11 +40,6 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
-    def room_call_dir(self) -> Path:
-        return self.api_calls_dir / "room_info"
-
-    @computed_field
-    @property
     def prepared_data_dir(self) -> Path:
         return self.data_dir / "prepared_data"
 
@@ -63,7 +58,6 @@ class Settings(BaseSettings):
             self.prepared_data_dir,
             self.api_calls_dir,
             self.main_call_dir,
-            self.room_call_dir,
             self.dashboard_data_dir,
         ]
 
@@ -75,8 +69,9 @@ class Settings(BaseSettings):
         return (
             self.raw_data_dir
             / "shapefiles"
-            / "FME_14060355_1660760091426_63496DownloadService"
-            "OfficialResidentPopulation_polygon.shp"
+            / "FME_14060355_1660760091426_63496"
+            / "DownloadService"
+            / "OfficialResidentPopulation_polygon.shp"
         )
 
     @computed_field
@@ -108,11 +103,6 @@ class Settings(BaseSettings):
     def prepared_accommodation_file(self) -> Path:
         return self.prepared_data_dir / "accommodations_cleaned.parquet"
 
-    @computed_field
-    @property
-    def room_info_file(self) -> Path:
-        return self.prepared_data_dir / "accommodation_rooms.parquet"
-
     # --- Dashboard files ---
 
     @computed_field
@@ -134,11 +124,6 @@ VARIABLES_INFO: dict[str, tuple[str, str]] = {
         "Number of Tourism Establishments per 1,000 Inhabitants",
         "{,}",
     ),
-    "total_occupancy": ("Total Occupancy", "{,}"),
-    "total_nr_rooms": ("Total Number of Rooms", "{,}"),
-    "total_nr_rooms_per_thousand_pop": ("Number of Rooms per 1,000 Inhabitants", "{,}"),
-    "avg_occupancy": ("Mean Occupancy of Tourism Establishments", "{0.1f}"),
-    "total_occupancy_per_thousand_pop": ("Total Occupancy per 1,000 Inhabitants", "{,}"),
     "NAME_D": ("Municipality (de)", ""),
     "NAME_I": ("Municipality (it)", ""),
     "share_1_rating": ("Share of Establishments with Rating 1", "{0.2f}%"),
@@ -162,4 +147,3 @@ MAPPING_CATEGORY_SINGULAR_PLURAL: dict[str, str] = {
     "sun": "suns",
 }
 ACCOMMODATION_API = "https://tourism.api.opendatahub.bz.it/v1/Accommodation"
-ACCOMMODATION_ROOM_API = ACCOMMODATION_API + "Room"

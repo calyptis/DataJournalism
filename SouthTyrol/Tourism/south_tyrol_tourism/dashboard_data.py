@@ -18,9 +18,6 @@ def load_municipality_data() -> gpd.GeoDataFrame:
         df.groupby(["NAME_D", "NAME_I"])
         .agg(
             nr_establishments=("Id", "count"),
-            total_occupancy=("MaxOccupancy", "sum"),
-            total_nr_rooms=("TotalRooms", "sum"),
-            avg_occupancy=("MaxOccupancy", "mean"),
             share_1_rating=("AccoCategoryRating_1", "sum"),
             share_2_rating=("AccoCategoryRating_2", "sum"),
             share_3_rating=("AccoCategoryRating_3", "sum"),
@@ -37,12 +34,6 @@ def load_municipality_data() -> gpd.GeoDataFrame:
         .assign(
             nr_establishments_per_thousand_pop=lambda x: (
                 x["nr_establishments"] / (x["BW_WOHNBEV"] / 1_000)
-            ),
-            total_occupancy_per_thousand_pop=lambda x: (
-                x["total_occupancy"] / (x["BW_WOHNBEV"] / 1_000)
-            ),
-            total_nr_rooms_per_thousand_pop=lambda x: (
-                x["total_nr_rooms"] / (x["BW_WOHNBEV"] / 1_000)
             ),
         )
     )

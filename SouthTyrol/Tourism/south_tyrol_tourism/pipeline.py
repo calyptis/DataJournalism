@@ -2,18 +2,16 @@ import json
 import urllib.request
 from pathlib import Path
 
-from loguru import logger
-
 import geopandas as gpd
 import numpy as np
 import pandas as pd
+from loguru import logger
 from scipy import stats
 
 from south_tyrol_tourism.config import (
+    ACCOMMODATION_API,
     MAPPING_CATEGORY_SINGULAR_PLURAL,
     settings,
-    ACCOMMODATION_API,
-    ACCOMMODATION_ROOM_API
 )
 from south_tyrol_tourism.exceptions import APIError, DataError
 
@@ -27,12 +25,30 @@ def prepare_dirs(dirs: list[Path] | None = None) -> None:
 def download_accommodations() -> None:
     """Downloads accommodation data from the Open Data Hub.
 
-    Pages are written to ``main_call_dir`` during download, then consolidated
-    into a single ``accommodations_raw.json`` and the page files are deleted.
+    Resumes from the last saved page if page files already exist in
+    ``main_call_dir``. Pages are consolidated into a single
+    ``accommodations_raw.json`` at the end and the page files are deleted.
     """
     logger.info("Downloading accommodations")
-    page: str | None = ACCOMMODATION_API
-    counter = 0
+
+    existing = sorted(
+        settings.main_call_dir.glob("page_*.json"),
+        key=lambda p: int(p.stem.split("_")[1]),
+    )
+    if existing:
+        last_data = json.loads(existing[-1].read_text())
+        next_page: str | None = last_data.get("NextPage")
+        counter = int(existing[-1].stem.split("_")[1]) + 1
+        if next_page is None:
+            logger.info("All pages already downloaded — consolidating")
+            _consolidate(settings.main_call_dir, "page_*.json", settings.raw_accommodation_file)
+            return
+        logger.info(f"Resuming from page {counter + 1:,}")
+        page: str | None = next_page
+    else:
+        page = ACCOMMODATION_API
+        counter = 0
+
     while page:
         if counter % 10 == 0:
             logger.info(f"Page number {counter + 1:,}")
@@ -55,7 +71,11 @@ def download_accommodations() -> None:
 
 
 def _consolidate(src_dir: Path, pattern: str, dest: Path) -> None:
-    """Merge all files matching ``pattern`` in ``src_dir`` into ``dest``, then delete them."""
+    """Merge all files matching ``pattern`` in ``src_dir`` into ``dest``, then delete them.
+
+    For Parquet destinations the existing ``dest`` file (if any) is included in
+    the merge so incremental runs accumulate results rather than overwrite them.
+    """
     files = list(src_dir.glob(pattern))
     if not files:
         return
@@ -65,7 +85,10 @@ def _consolidate(src_dir: Path, pattern: str, dest: Path) -> None:
         dest.write_text(json.dumps(items))
         logger.info(f"Merged {len(files)} pages → {len(items):,} entries")
     else:
-        df = pd.concat([pd.read_parquet(f) for f in files]).drop_duplicates("Id")
+        dfs = [pd.read_parquet(f) for f in files]
+        if dest.exists():
+            dfs.append(pd.read_parquet(dest))
+        df = pd.concat(dfs).drop_duplicates("Id")
         df.to_parquet(dest, index=False)
         logger.info(f"Merged {len(files)} batches → {len(df):,} rows")
     for f in files:
@@ -92,12 +115,10 @@ def _parse_entry(entry: dict[str, object]) -> dict[str, object]:
         region: str | None = loc["RegionInfo"]["Name"]["de"]  # type: ignore[index]
     except (KeyError, TypeError):
         region = None
-    room_info = entry.get("AccoRoomInfo")
     return {
         "Name": detail.get("Name"),
         "City": detail.get("City"),
         "LocationInfo": region,
-        "AccoRoomInfo": len(room_info) if room_info else None,  # type: ignore[arg-type]
         **{f: entry.get(f) for f in (
             "AccoCategoryId", "HasApartment", "IsGastronomy",
             "Altitude", "Latitude", "Longitude", "Id",
@@ -109,7 +130,6 @@ def prepare_data() -> None:
     """Cleans parsed data, adds category OHE columns and municipality via spatial join."""
     logger.info("Preparing data")
     df = pd.read_parquet(settings.parsed_accommodation_file)
-    room_info = pd.read_parquet(settings.room_info_file)
 
     n_dupl = int(df.duplicated().sum())
     logger.info(f"Duplicates removed: {n_dupl:,}")
@@ -159,61 +179,8 @@ def prepare_data() -> None:
         raise DataError("Row count changed after spatial join — check for geometry overlaps.")
 
     df_geo["Id"] = df_geo["Id"].str.removesuffix("_REDUCED")
-    df_geo = df_geo.merge(room_info, on="Id", how="left").drop(columns=["index_right", "geometry"])
+    df_geo = df_geo.drop(columns=["index_right", "geometry"])
     pd.DataFrame(df_geo).to_parquet(settings.prepared_accommodation_file, index=False)
-
-
-def download_room_info() -> None:
-    """Makes API calls for room/occupancy info.
-
-    Batches of 200 are checkpointed to ``room_call_dir`` as Parquet. At the
-    end, all batches are consolidated into ``room_info_file`` and deleted.
-    """
-    logger.info("Downloading information on rooms of accommodations")
-    source = (
-        settings.prepared_accommodation_file
-        if settings.prepared_accommodation_file.exists()
-        else settings.parsed_accommodation_file
-    )
-    if not source.exists():
-        raise DataError(f"Source file not found: {source}")
-
-    accommodation_ids: set[str] = set(
-        pd.read_parquet(source)["Id"].str.removesuffix("_REDUCED").unique()
-    )
-    existing_ids: set[str] = (
-        set(pd.read_parquet(settings.room_info_file)["Id"].unique())
-        if settings.room_info_file.exists()
-        else set()
-    )
-    ids = list(accommodation_ids - existing_ids)
-    logger.info(f"API calls to make: {len(ids):,}")
-
-    results: list[tuple[str, int, int]] = []
-    for i, accomm_id in enumerate(ids, 1):
-        results.append(_get_rooms(accomm_id))
-        if i % 200 == 0 or i == len(ids):
-            pd.DataFrame(results, columns=["Id", "TotalRooms", "MaxOccupancy"]).to_parquet(
-                settings.room_call_dir / f"room_batch_{i}.parquet", index=False
-            )
-            results = []
-            logger.info(f"Made {i:,} room info API calls")
-
-    _consolidate(settings.room_call_dir, "room_batch_*.parquet", settings.room_info_file)
-
-
-def _get_rooms(accommodation_id: str) -> tuple[str, int, int]:
-    url = (
-        f"{ACCOMMODATION_ROOM_API}?accoid={accommodation_id}"
-        "&idsource=lts&getall=true&language=de&removenullvalues=true"
-    )
-    try:
-        with urllib.request.urlopen(url) as response:
-            data: list[dict] = json.loads(response.read())
-    except Exception as exc:
-        raise APIError(f"Failed to fetch room info for {accommodation_id!r}") from exc
-    rooms = [(d["RoomQuantity"], d["Roommax"]) for d in data]
-    return accommodation_id, sum(r for r, _ in rooms), sum(r * m for r, m in rooms)
 
 
 def _parse_category(x: str | None) -> tuple[str | None, str | None]:

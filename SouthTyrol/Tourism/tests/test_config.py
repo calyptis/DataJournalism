@@ -12,10 +12,10 @@ from south_tyrol_tourism.config import (
 def test_all_settings_paths_are_absolute() -> None:
     path_fields = [
         "data_dir", "plot_dir", "raw_data_dir", "api_calls_dir",
-        "main_call_dir", "room_call_dir", "prepared_data_dir", "dashboard_data_dir",
+        "main_call_dir", "prepared_data_dir", "dashboard_data_dir",
         "population_shapefile", "province_shapefile",
         "raw_accommodation_file", "parsed_accommodation_file",
-        "prepared_accommodation_file", "room_info_file", "municipality_file",
+        "prepared_accommodation_file", "municipality_file",
     ]
     for field in path_fields:
         p = getattr(settings, field)
@@ -32,7 +32,6 @@ def test_parquet_files_have_parquet_extension() -> None:
     parquet_fields = [
         "parsed_accommodation_file",
         "prepared_accommodation_file",
-        "room_info_file",
         "municipality_file",
     ]
     for field in parquet_fields:
@@ -50,7 +49,6 @@ def test_env_var_override_propagates_to_derived_paths(tmp_path: Path) -> None:
     assert custom.raw_data_dir == tmp_path / "raw_data"
     assert custom.prepared_data_dir == tmp_path / "prepared_data"
     assert custom.municipality_file == tmp_path / "dashboard_data" / "municipality.parquet"
-    assert custom.room_info_file == tmp_path / "prepared_data" / "accommodation_rooms.parquet"
 
 
 def test_env_var_override_dirs_are_rooted_under_custom_data_dir(tmp_path: Path) -> None:

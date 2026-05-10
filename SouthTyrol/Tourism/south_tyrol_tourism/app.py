@@ -1,10 +1,13 @@
 import geopandas as gpd
 import holoviews as hv
 import streamlit as st
+from streamlit_bokeh import streamlit_bokeh
 
 from south_tyrol_tourism.config import VARIABLES_INV, settings
 from south_tyrol_tourism.dashboard_data import load_density_data
 from south_tyrol_tourism.visualisation import define_density_map, define_municipality_map
+
+hv.extension("bokeh")
 
 _APP_TITLE = "Tourism in South Tyrol"
 st.set_page_config(page_title=_APP_TITLE, layout="wide")
@@ -56,4 +59,4 @@ else:
     raise NotImplementedError(f"Unknown map type: {map_type!r}")
 
 st.title(_APP_TITLE)
-st.bokeh_chart(hv.render(viz, backend="bokeh"))
+streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=False)

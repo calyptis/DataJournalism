@@ -9,7 +9,6 @@ def sample_api_entry() -> dict:
     return {
         "Id": "ABC123",
         "AccoCategoryId": "3stars",
-        "AccoRoomInfo": [{"Id": "r1"}, {"Id": "r2"}],
         "HasApartment": False,
         "IsGastronomy": False,
         "LocationInfo": {"RegionInfo": {"Name": {"de": "Meran"}}},
@@ -29,8 +28,6 @@ def sample_accommodation_df() -> pd.DataFrame:
             "City": ["Merano", "Bolzano"],
             "Latitude": [46.67, 46.49],
             "Longitude": [11.16, 11.34],
-            "MaxOccupancy": [20, 30],
-            "TotalRooms": [10, 15],
             "NAME_D": ["Meran", "Bozen"],
             "NAME_I": ["Merano", "Bolzano"],
         }

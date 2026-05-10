@@ -1,4 +1,3 @@
-import logging
 from pathlib import Path
 
 import geopandas as gpd
@@ -7,11 +6,10 @@ import holoviews as hv
 import numpy as np
 import pandas as pd
 from bokeh.models import HoverTool
+from loguru import logger
 from sklearn.neighbors import KernelDensity
 
 from south_tyrol_tourism.config import VARIABLES_INFO
-
-logger = logging.getLogger(__name__)
 
 
 def define_municipality_map(
@@ -35,8 +33,8 @@ def define_municipality_map(
         gv.Polygons(data, vdims=list(VARIABLES_INFO.keys()))
         .opts(
             tools=[hover],
-            width=900,
-            height=600,
+            frame_width=700,
+            aspect="equal",
             color=color_col,
             colorbar=True,
             toolbar="below",
@@ -94,8 +92,8 @@ def define_density_map(
         * reference_points.opts(size=10, tools=[], color="black")
         * reference_labels.opts(text_color="white")
     ).opts(
-        width=900,
-        height=600,
+        frame_width=700,
+        aspect="equal",
         xaxis=None,
         yaxis=None,
         toolbar="below",
