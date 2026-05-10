@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+
+# Poetry
+# poetry.lock is intentionally committed
+
+# Data (large files excluded; .gitkeep files keep directory structure)
+archive-data/raw_data/api_calls/
+archive-data/prepared_data/
+archive-data/dashboard_data/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Plots (generated output)
+plots/

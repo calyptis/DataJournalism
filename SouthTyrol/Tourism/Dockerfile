@@ -1,24 +1,27 @@
-# Base image to use
-FROM continuumio/miniconda3
+FROM python:3.11-slim
 
-# Expose port 8080
+# System libraries required by geopandas / geoviews (GDAL, GEOS, PROJ)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgdal-dev gdal-bin \
+    libgeos-dev libproj-dev \
+    libspatialindex-dev \
+    build-essential \
+ && rm -rf /var/lib/apt/lists/*
+
 EXPOSE 8080
 
-# Copy needed files into Docker image
-COPY requirements.txt app/requirements.txt
-COPY ./src /src
-COPY ./data/dashboard_data /data/dashboard_data
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# Install all requirements (plus adding plots directory)
-# Adding conda clean --all to remove unnecessary files
-# NOTE: Chain RUN commands to reduce the size of the resulting Docker image
-RUN conda config --append channels conda-forge && \
-    conda install --file app/requirements.txt && \
-    conda clean --all && \
-    mkdir /plots
+RUN pip install poetry
 
-# Set the working directory
-WORKDIR src/
+WORKDIR /app
+COPY pyproject.toml poetry.lock ./
+RUN poetry install --without dev --no-root && rm -rf $POETRY_CACHE_DIR
 
-# Run the application on port 8080
-ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8080"]
+COPY south_tyrol_tourism/ ./south_tyrol_tourism/
+COPY archive-data/dashboard_data/ ./data/dashboard_data/
+
+RUN poetry install --without dev --only-root
+
+ENTRYPOINT ["poetry", "run", "streamlit", "run", "south_tyrol_tourism/app.py", "--server.port=8080"]
