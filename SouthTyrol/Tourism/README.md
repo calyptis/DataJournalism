@@ -5,13 +5,10 @@ known as Südtirol or Alto Adige.
 
 ![density map of tourism establishments in South Tyrol](assets/density_map.png "Title")
 
-# Example
-See the jupyter notebook [here](notebooks/Tourism%20in%20South%20Tyrol.ipynb).
 
 # Visualisations
 
-See this [Tableau workbook](https://public.tableau.com/app/profile/lucas.chizzali/viz/TourisminSouthTyrol/Heatmap?publish=yes)
-or the more extensive Streamlit app below.
+See this Streamlit app.
 
 # Set-up
 

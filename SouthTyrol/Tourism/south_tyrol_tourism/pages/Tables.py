@@ -65,13 +65,13 @@ tab_general, tab_hotels, tab_apartments, tab_farms = st.tabs(
 )
 
 with tab_general:
-    st.dataframe(data[_GENERAL_COLS], column_config=_COLUMN_CONFIG, use_container_width=True)
+    st.dataframe(data[_GENERAL_COLS], column_config=_COLUMN_CONFIG, width='stretch')
 
 with tab_hotels:
-    st.dataframe(data[_HOTEL_COLS], column_config=_COLUMN_CONFIG, use_container_width=True)
+    st.dataframe(data[_HOTEL_COLS], column_config=_COLUMN_CONFIG, width='stretch')
 
 with tab_apartments:
-    st.dataframe(data[_APARTMENT_COLS], column_config=_COLUMN_CONFIG, use_container_width=True)
+    st.dataframe(data[_APARTMENT_COLS], column_config=_COLUMN_CONFIG, width='stretch')
 
 with tab_farms:
-    st.dataframe(data[_FARM_COLS], column_config=_COLUMN_CONFIG, use_container_width=True)
+    st.dataframe(data[_FARM_COLS], column_config=_COLUMN_CONFIG, width='stretch')

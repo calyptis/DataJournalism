@@ -32,9 +32,8 @@ with col1:
         color_col="nr_establishments",
         title="",
         clabel="Establishments",
-        frame_width=550,
     )
-    streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=False)
+    streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=True)
 
 with col2:
     st.subheader("Establishments per 1,000 Inhabitants")
@@ -43,10 +42,9 @@ with col2:
         color_col="nr_establishments_per_thousand_pop",
         title="",
         clabel="Estab. / 1k pop",
-        frame_width=550,
     )
-    streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=False)
+    streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=True)
 
 st.subheader("Spatial Density of Tourism Establishments")
 viz = define_density_map(**_density_data())
-streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=False)
+streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=True)

@@ -20,7 +20,7 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --without dev --no-root && rm -rf $POETRY_CACHE_DIR
 
 COPY south_tyrol_tourism/ ./south_tyrol_tourism/
-COPY archive-data/dashboard_data/ ./data/dashboard_data/
+COPY data/dashboard_data/ ./data/dashboard_data/
 
 RUN poetry install --without dev --only-root
 

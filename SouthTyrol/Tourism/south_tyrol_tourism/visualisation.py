@@ -18,7 +18,6 @@ def define_municipality_map(
     title: str,
     clabel: str,
     tooltip_all_kpis: bool = False,
-    frame_width: int = 700,
 ) -> gv.Polygons:
     """Returns a choropleth of the selected tourism KPI at municipality level."""
     if tooltip_all_kpis:
@@ -35,7 +34,7 @@ def define_municipality_map(
         gv.Polygons(data, vdims=vdims)
         .opts(
             tools=[hover],
-            frame_width=frame_width,
+            responsive=True,
             aspect="equal",
             color=color_col,
             colorbar=True,
@@ -94,7 +93,7 @@ def define_density_map(
         * reference_points.opts(size=10, tools=[], color="black")
         * reference_labels.opts(text_color="white")
     ).opts(
-        frame_width=700,
+        responsive=True,
         aspect="equal",
         xaxis=None,
         yaxis=None,
