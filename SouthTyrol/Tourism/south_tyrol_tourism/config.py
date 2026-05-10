@@ -133,17 +133,43 @@ VARIABLES_INFO: dict[str, tuple[str, str]] = {
     "share_4_rating": ("Share of Establishments with Rating 4", "{0.2f}%"),
     "share_4s_rating": ("Share of Establishments with Rating 4S", "{0.2f}%"),
     "share_5_rating": ("Share of Establishments with Rating 5", "{0.2f}%"),
-    "share_stars": ("Share of Stars Establishments", "{0.2f}%"),
-    "share_suns": ("Share of Suns Establishments", "{0.2f}%"),
-    "share_flowers": ("Share of Flowers Establishments", "{0.2f}%"),
+    "share_hotels": ("Hotels %", "{0.1f}%"),
+    "share_apartments": ("Apartments %", "{0.1f}%"),
+    "share_farms": ("Farms %", "{0.1f}%"),
+    "share_hotel_rating_1": ("Hotels — Rating 1 %", "{0.1f}%"),
+    "share_hotel_rating_2": ("Hotels — Rating 2 %", "{0.1f}%"),
+    "share_hotel_rating_3": ("Hotels — Rating 3 %", "{0.1f}%"),
+    "share_hotel_rating_3s": ("Hotels — Rating 3S %", "{0.1f}%"),
+    "share_hotel_rating_4": ("Hotels — Rating 4 %", "{0.1f}%"),
+    "share_hotel_rating_4s": ("Hotels — Rating 4S %", "{0.1f}%"),
+    "share_hotel_rating_5": ("Hotels — Rating 5 %", "{0.1f}%"),
+    "share_apartment_rating_1": ("Apartments — Rating 1 %", "{0.1f}%"),
+    "share_apartment_rating_2": ("Apartments — Rating 2 %", "{0.1f}%"),
+    "share_apartment_rating_3": ("Apartments — Rating 3 %", "{0.1f}%"),
+    "share_apartment_rating_3s": ("Apartments — Rating 3S %", "{0.1f}%"),
+    "share_apartment_rating_4": ("Apartments — Rating 4 %", "{0.1f}%"),
+    "share_apartment_rating_4s": ("Apartments — Rating 4S %", "{0.1f}%"),
+    "share_apartment_rating_5": ("Apartments — Rating 5 %", "{0.1f}%"),
+    "share_farm_rating_1": ("Farms — Rating 1 %", "{0.1f}%"),
+    "share_farm_rating_2": ("Farms — Rating 2 %", "{0.1f}%"),
+    "share_farm_rating_3": ("Farms — Rating 3 %", "{0.1f}%"),
+    "share_farm_rating_3s": ("Farms — Rating 3S %", "{0.1f}%"),
+    "share_farm_rating_4": ("Farms — Rating 4 %", "{0.1f}%"),
+    "share_farm_rating_4s": ("Farms — Rating 4S %", "{0.1f}%"),
+    "share_farm_rating_5": ("Farms — Rating 5 %", "{0.1f}%"),
 }
 
 VARIABLES_PRETTY: dict[str, str] = {k: v[0] for k, v in VARIABLES_INFO.items()}
 VARIABLES_INV: dict[str, str] = {v[0]: k for k, v in VARIABLES_INFO.items()}
 
-MAPPING_CATEGORY_SINGULAR_PLURAL: dict[str, str] = {
-    "flower": "flowers",
-    "star": "stars",
-    "sun": "suns",
+# Mapping to type of establishment as per
+# https://www.suedtirol.de/klassifizierung-sterne-sonnen-blumen.html
+MAPPING_CATEGORY: dict[str, str] = {
+    "flower": "Farm",
+    "star": "Hotel",
+    "sun": "Apartment",
+    "stars": "Hotel",
+    "suns": "Apartment",
+    "flowers": "Farm",
 }
 ACCOMMODATION_API = "https://tourism.api.opendatahub.bz.it/v1/Accommodation"

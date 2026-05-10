@@ -10,7 +10,7 @@ from scipy import stats
 
 from south_tyrol_tourism.config import (
     ACCOMMODATION_API,
-    MAPPING_CATEGORY_SINGULAR_PLURAL,
+    MAPPING_CATEGORY,
     settings,
 )
 from south_tyrol_tourism.exceptions import APIError, DataError
@@ -139,27 +139,17 @@ def prepare_data() -> None:
     logger.info(f"Invalid GPS coordinates removed: {int(mask.sum()):,}")
     df = df.loc[~mask].copy()
 
-    df["AccoCategoryRating"] = (
+    df["Rating"] = (
         df["AccoCategoryId"].apply(lambda x: _parse_category(x)[0]).str.title()
     )
-    df["AccoCategoryType"] = (
+    df["Type"] = (
         df["AccoCategoryId"]
         .apply(lambda x: _parse_category(x)[1])
-        .replace(MAPPING_CATEGORY_SINGULAR_PLURAL)
+        .replace(MAPPING_CATEGORY)
         .str.title()
     )
 
-    n = len(df)
-    df = df.merge(
-        pd.get_dummies(
-            df[["Id", "AccoCategoryType", "AccoCategoryRating"]],
-            columns=["AccoCategoryType", "AccoCategoryRating"],
-        ),
-        on="Id",
-        how="inner",
-    )
-    if len(df) != n:
-        raise DataError("Row count changed after OHE merge — check for duplicate IDs.")
+    df = pd.get_dummies(df, columns=["Type", "Rating"])
 
     population = gpd.read_file(settings.population_shapefile).to_crs(settings.crs)
     population = population.drop_duplicates(subset=["NAME_D"])
@@ -168,15 +158,13 @@ def prepare_data() -> None:
         geometry=gpd.points_from_xy(df["Longitude"], df["Latitude"]),
         crs=settings.crs,
     )
-    n = len(df_geo)
+
     df_geo = gpd.sjoin(
         df_geo,
         population[["NAME_D", "NAME_I", "geometry"]],
-        how="left",
+        how="inner",
         predicate="within",
     )
-    if len(df_geo) != n:
-        raise DataError("Row count changed after spatial join — check for geometry overlaps.")
 
     df_geo["Id"] = df_geo["Id"].str.removesuffix("_REDUCED")
     df_geo = df_geo.drop(columns=["index_right", "geometry"])

@@ -18,22 +18,24 @@ def define_municipality_map(
     title: str,
     clabel: str,
     tooltip_all_kpis: bool = False,
+    frame_width: int = 700,
 ) -> gv.Polygons:
     """Returns a choropleth of the selected tourism KPI at municipality level."""
     if tooltip_all_kpis:
-        tooltips = [(v[0], "@" + k + v[1]) for k, v in VARIABLES_INFO.items()]
+        tooltips = [(v[0], "@" + k + v[1]) for k, v in VARIABLES_INFO.items() if k in data.columns]
     else:
         col_info = VARIABLES_INFO[color_col]
         municipality_info = {k: v for k, v in VARIABLES_INFO.items() if k in ("NAME_D", "NAME_I")}
         tooltips = [(col_info[0], "@" + color_col + col_info[1])]
         tooltips += [(v[0], "@" + k + v[1]) for k, v in municipality_info.items()]
 
+    vdims = [k for k in VARIABLES_INFO if k in data.columns]
     hover = HoverTool(tooltips=tooltips)
     return (
-        gv.Polygons(data, vdims=list(VARIABLES_INFO.keys()))
+        gv.Polygons(data, vdims=vdims)
         .opts(
             tools=[hover],
-            frame_width=700,
+            frame_width=frame_width,
             aspect="equal",
             color=color_col,
             colorbar=True,

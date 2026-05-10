@@ -7,6 +7,10 @@ from south_tyrol_tourism.config import settings
 from south_tyrol_tourism.visualisation import get_kernel_density
 
 
+_RATING_COLS = ["Rating_1", "Rating_2", "Rating_3", "Rating_3S", "Rating_4", "Rating_4S", "Rating_5"]
+_TYPE_COLS = ["Hotel", "Apartment", "Farm"]
+
+
 def load_municipality_data() -> gpd.GeoDataFrame:
     """Aggregates accommodation data to municipality level and returns a GeoDataFrame of KPIs."""
     df = pd.read_parquet(settings.prepared_accommodation_file)
@@ -14,20 +18,31 @@ def load_municipality_data() -> gpd.GeoDataFrame:
     population = gpd.read_file(settings.population_shapefile).to_crs(settings.crs)
     population = population.drop_duplicates(subset=["NAME_D"])
 
+    for type_ in _TYPE_COLS:
+        for rating in _RATING_COLS:
+            df[f"Type_{type_}_{rating}"] = df[f"Type_{type_}"] & df[rating]
+
+    type_rating_aggs = {
+        f"nr_{type_.lower()}_{rating.lower()}": (f"Type_{type_}_{rating}", "sum")
+        for type_ in _TYPE_COLS
+        for rating in _RATING_COLS
+    }
+
     tourism_df = (
         df.groupby(["NAME_D", "NAME_I"])
         .agg(
             nr_establishments=("Id", "count"),
-            share_1_rating=("AccoCategoryRating_1", "sum"),
-            share_2_rating=("AccoCategoryRating_2", "sum"),
-            share_3_rating=("AccoCategoryRating_3", "sum"),
-            share_3s_rating=("AccoCategoryRating_3S", "sum"),
-            share_4_rating=("AccoCategoryRating_4", "sum"),
-            share_4s_rating=("AccoCategoryRating_4S", "sum"),
-            share_5_rating=("AccoCategoryRating_5", "sum"),
-            share_stars=("AccoCategoryType_Stars", "sum"),
-            share_suns=("AccoCategoryType_Suns", "sum"),
-            share_flowers=("AccoCategoryType_Flowers", "sum"),
+            share_1_rating=("Rating_1", "sum"),
+            share_2_rating=("Rating_2", "sum"),
+            share_3_rating=("Rating_3", "sum"),
+            share_3s_rating=("Rating_3S", "sum"),
+            share_4_rating=("Rating_4", "sum"),
+            share_4s_rating=("Rating_4S", "sum"),
+            share_5_rating=("Rating_5", "sum"),
+            nr_hotels=("Type_Hotel", "sum"),
+            nr_apartments=("Type_Apartment", "sum"),
+            nr_farms=("Type_Farm", "sum"),
+            **type_rating_aggs,
         )
         .reset_index()
         .merge(population[["NAME_D", "BW_WOHNBEV", "geometry"]], on="NAME_D", how="left")
@@ -38,9 +53,20 @@ def load_municipality_data() -> gpd.GeoDataFrame:
         )
     )
 
-    share_cols = [c for c in tourism_df.columns if c.startswith("share_")]
-    for col in share_cols:
+    # Share of each rating across all establishments
+    for col in [c for c in tourism_df.columns if c.startswith("share_")]:
         tourism_df[col] = tourism_df[col] / tourism_df["nr_establishments"] * 100
+
+    # Share of each rating within each establishment type (fillna(0) for municipalities with none of that type)
+    type_totals = {"hotel": "nr_hotels", "apartment": "nr_apartments", "farm": "nr_farms"}
+    for type_, total_col in type_totals.items():
+        tourism_df[f"share_{type_}s"] = (
+            tourism_df[total_col] / tourism_df["nr_establishments"] * 100
+        ).fillna(0)
+        for rating in _RATING_COLS:
+            tourism_df[f"share_{type_}_{rating.lower()}"] = (
+                tourism_df[f"nr_{type_}_{rating.lower()}"] / tourism_df[total_col] * 100
+            ).fillna(0)
 
     assert tourism_df["NAME_D"].nunique() == len(tourism_df)
 
