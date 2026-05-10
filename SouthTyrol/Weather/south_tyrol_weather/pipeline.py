@@ -11,6 +11,7 @@ from south_tyrol_weather.config import (
     MAX_WORKERS,
     SENSORS,
 )
+from south_tyrol_weather.excel import get_excel_urls, parse_excel, scode_from_url
 from south_tyrol_weather.store import init_db, last_dates, upsert_measurements, upsert_stations
 
 
@@ -128,6 +129,59 @@ def run(full: bool = False) -> None:
                 upsert_measurements(con, records)
                 if done % 20 == 0 or done == total:
                     print(f"  downloaded {done}/{total}")
+
+    con.close()
+    print(f"\nDone. Database: {DB_PATH}")
+
+
+def run_excel(full: bool = False) -> None:
+    """Ingest historical data from the provincial Excel download page into DuckDB."""
+    con = init_db(DB_PATH)
+
+    print("Fetching station list from REST API (for coordinates)…")
+    api_stations = get_stations()
+
+    print("Fetching Excel file list…")
+    urls = get_excel_urls()
+    print(f"  {len(urls)} Excel files found")
+
+    total = len(urls)
+    for i, url in enumerate(urls, 1):
+        scode = scode_from_url(url)
+        print(f"[{i}/{total}] {scode}", end="", flush=True)
+
+        if not full:
+            known = last_dates(con, [scode], "LT")
+            last_lt = known.get(scode)
+            today = date.today()
+            if last_lt is not None and last_lt >= today:
+                print(" — up to date, skipped")
+                continue
+
+        try:
+            station_df, measurements = parse_excel(url, api_stations)
+            upsert_stations(con, station_df)
+
+            if not measurements.empty:
+                if not full:
+                    known = last_dates(con, [scode], "LT")
+                    last_lt = known.get(scode)
+                    if last_lt is not None:
+                        cutoff = pd.Timestamp(last_lt).date()
+                        measurements = measurements[
+                            pd.to_datetime(measurements["date"]).dt.date > cutoff
+                        ]
+
+                if not measurements.empty:
+                    upsert_measurements(con, measurements)
+                    print(f" — {len(measurements)} rows")
+                else:
+                    print(" — no new rows")
+            else:
+                print(" — no data")
+
+        except Exception as e:
+            print(f" — ERROR: {e}")
 
     con.close()
     print(f"\nDone. Database: {DB_PATH}")

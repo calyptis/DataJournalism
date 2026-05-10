@@ -1,4 +1,5 @@
 API_BASE = "http://daten.buergernetz.bz.it/services/meteo/v1"
+EXCEL_PAGE_URL = "https://wetter.provinz.bz.it/de/download-messdaten"
 SENSORS = ["LT"]
 DATE_FROM = "19800101"
 DB_PATH = "data/weather.duckdb"
