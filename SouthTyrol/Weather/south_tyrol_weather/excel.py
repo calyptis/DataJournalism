@@ -1,12 +1,21 @@
 """
 Scrape and parse the South Tyrol historical weather Excel files.
 Source: https://wetter.provinz.bz.it/de/download-messdaten
+
+The download page is a JS-rendered SPA whose collapse sections must be
+expanded before links become visible — we use a headless Firefox driver.
 """
 import io
+import time
 
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from south_tyrol_weather.config import EXCEL_PAGE_URL, TIMEOUT
 
@@ -25,15 +34,41 @@ _COL_TEMP_MAX = 5
 
 
 def get_excel_urls() -> list[str]:
-    """Return all .xlsx download hrefs from the provincial weather download page."""
-    r = requests.get(EXCEL_PAGE_URL, timeout=TIMEOUT)
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "html.parser")
-    return [
-        a["href"]
-        for a in soup.find_all("a", class_="download")
-        if a.get("href", "").endswith(".xlsx")
-    ]
+    """Return all .xlsx download hrefs from the provincial weather download page.
+
+    The page renders via JS and hides links inside Bootstrap collapse panels.
+    A headless Firefox driver expands every panel before harvesting hrefs.
+    """
+    opts = Options()
+    opts.add_argument("--headless")
+    driver = webdriver.Firefox(options=opts)
+    try:
+        driver.get(EXCEL_PAGE_URL)
+        # Wait for at least one collapse toggle to appear
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "[data-toggle='collapse']"))
+        )
+        # Expand every collapsed panel
+        toggles = driver.find_elements(By.CSS_SELECTOR, "[data-toggle='collapse']")
+        for toggle in toggles:
+            try:
+                driver.execute_script("arguments[0].click();", toggle)
+            except Exception:
+                pass
+        # Give JS time to render the links
+        time.sleep(2)
+        links = driver.find_elements(By.CSS_SELECTOR, "a[href$='.xlsx']")
+        seen: set[str] = set()
+        urls: list[str] = []
+        for a in links:
+            href = a.get_attribute("href") or ""
+            # Keep only daily temperature+precipitation files; skip duplicates
+            if href and "daily-temperature-precipitation" in href and href not in seen:
+                seen.add(href)
+                urls.append(href)
+        return urls
+    finally:
+        driver.quit()
 
 
 def scode_from_url(url: str) -> str:
@@ -61,13 +96,14 @@ def parse_excel(url: str, api_stations: pd.DataFrame) -> tuple[pd.DataFrame, pd.
 
 
 def _build_station_row(raw: pd.DataFrame, scode: str, api_stations: pd.DataFrame) -> pd.DataFrame:
-    name = str(raw.iloc[_ROW_NAME, _COL_NAME]).strip()
-
     api_row = api_stations[api_stations["SCODE"] == scode]
     if not api_row.empty:
         r = api_row.iloc[0]
+        name = str(r["NAME_D"])
         altitude, lat, lon = float(r["ALT"]), float(r["LAT"]), float(r["LONG"])
     else:
+        raw_name = raw.iloc[_ROW_NAME, _COL_NAME]
+        name = scode if (pd.isna(raw_name) or str(raw_name).strip().lower() == "nan") else str(raw_name).strip()
         try:
             altitude = float(str(raw.iloc[_ROW_ELEVATION, _COL_ELEVATION]).strip())
         except ValueError:
