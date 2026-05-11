@@ -20,31 +20,44 @@ def _density_data() -> dict[str, object]:
     return load_density_data()
 
 
-st.title("Tourism in South Tyrol")
-
-data = _municipality_data()
-
-col1, col2 = st.columns(2)
-with col1:
-    st.subheader("Number of Establishments")
+@st.cache_resource
+def _render_establishments_map():
     viz = define_municipality_map(
-        data=data,
+        data=_municipality_data(),
         color_col="nr_establishments",
         title="",
         clabel="Establishments",
     )
-    streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=True)
+    return hv.render(viz, backend="bokeh")
 
-with col2:
-    st.subheader("Establishments per 1,000 Inhabitants")
+
+@st.cache_resource
+def _render_per_1k_map():
     viz = define_municipality_map(
-        data=data,
+        data=_municipality_data(),
         color_col="nr_establishments_per_thousand_pop",
         title="",
         clabel="Estab. / 1k pop",
     )
-    streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=True)
+    return hv.render(viz, backend="bokeh")
+
+
+@st.cache_resource
+def _render_density_map():
+    viz = define_density_map(**_density_data())
+    return hv.render(viz, backend="bokeh")
+
+
+st.title("Tourism in South Tyrol")
+
+col1, col2 = st.columns(2)
+with col1:
+    st.subheader("Number of Establishments")
+    streamlit_bokeh(_render_establishments_map(), use_container_width=True)
+
+with col2:
+    st.subheader("Establishments per 1,000 Inhabitants")
+    streamlit_bokeh(_render_per_1k_map(), use_container_width=True)
 
 st.subheader("Spatial Density of Tourism Establishments")
-viz = define_density_map(**_density_data())
-streamlit_bokeh(hv.render(viz, backend="bokeh"), use_container_width=True)
+streamlit_bokeh(_render_density_map(), use_container_width=True)

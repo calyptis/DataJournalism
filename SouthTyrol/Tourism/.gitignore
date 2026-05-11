@@ -8,10 +8,10 @@ dist/
 # Poetry
 # poetry.lock is intentionally committed
 
-# Data (large files excluded; .gitkeep files keep directory structure)
-archive-data/raw_data/api_calls/
-archive-data/prepared_data/
-archive-data/dashboard_data/
+# Data (large files excluded; dashboard_data is committed for deployment)
+data/raw_data/
+data/prepared_data/
+notebooks/
 
 # macOS
 .DS_Store
