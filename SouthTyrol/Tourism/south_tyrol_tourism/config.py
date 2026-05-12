@@ -101,7 +101,7 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def prepared_accommodation_file(self) -> Path:
-        return self.prepared_data_dir / "accommodations_cleaned.parquet"
+        return self.dashboard_data_dir / "accommodations_cleaned.parquet"
 
     # --- Dashboard files ---
 
@@ -109,6 +109,11 @@ class Settings(BaseSettings):
     @property
     def municipality_file(self) -> Path:
         return self.dashboard_data_dir / "municipality.parquet"
+
+    @computed_field
+    @property
+    def south_tyrol_boundary_file(self) -> Path:
+        return self.dashboard_data_dir / "south_tyrol_boundary.parquet"
 
 
 # Module-level singleton used throughout the package

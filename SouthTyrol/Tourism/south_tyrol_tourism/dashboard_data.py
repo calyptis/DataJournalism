@@ -73,12 +73,19 @@ def load_municipality_data() -> gpd.GeoDataFrame:
     return gpd.GeoDataFrame(tourism_df, geometry=tourism_df["geometry"])
 
 
+def save_south_tyrol_boundary() -> None:
+    """Extracts the South Tyrol polygon from the province shapefile and persists it."""
+    province_shape = gpd.read_file(settings.province_shapefile).to_crs(settings.crs)
+    south_tyrol = province_shape.query("SIGLA == 'BZ'")
+    south_tyrol.to_parquet(settings.south_tyrol_boundary_file)
+    logger.info(f"South Tyrol boundary saved → {settings.south_tyrol_boundary_file}")
+
+
 def load_density_data() -> dict[str, object]:
     """Loads accommodation coordinates and computes KDE inputs for the density map."""
     df = pd.read_parquet(settings.prepared_accommodation_file)
 
-    province_shape = gpd.read_file(settings.province_shapefile).to_crs(settings.crs)
-    south_tyrol = province_shape.query("SIGLA == 'BZ'")
+    south_tyrol = gpd.read_parquet(settings.south_tyrol_boundary_file)
 
     establishments = (
         gv.Dataset(df, kdims=["City", "Latitude", "Longitude"])
@@ -97,12 +104,13 @@ def load_density_data() -> dict[str, object]:
 
 
 def main() -> None:
-    """Precomputes and persists municipality data for the dashboard."""
+    """Precomputes and persists all dashboard data files."""
     logger.info("Preparing dashboard data")
     settings.dashboard_data_dir.mkdir(parents=True, exist_ok=True)
     df_municipality = load_municipality_data()
     df_municipality.to_parquet(settings.municipality_file)
     logger.info(f"Municipality data saved → {settings.municipality_file}")
+    save_south_tyrol_boundary()
 
 
 if __name__ == "__main__":
