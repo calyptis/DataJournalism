@@ -82,3 +82,6 @@ poetry run pytest
 ```
 
 The API and pipeline tests hit the live South Tyrol API.
+
+## TODO
+- [ ] Create a streamlit app with the visualisations

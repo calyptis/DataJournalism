@@ -62,5 +62,5 @@ mounted as a volume, so updated pickle files are picked up without rebuilding th
 - Tourism data is obtained from the [Opendatahub API](https://tourism.opendatahub.bz.it/swagger/index.html#/Accommodation/SingleAccommodationRoom)
 
 # TODO
-- [ ] Streamlit pages need to cache
+- [ ] Add descriptions to the streamlit app to tell a story
 
