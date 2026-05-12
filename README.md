@@ -11,7 +11,4 @@ in this region of Italy far exceeds those in the country overall and even that o
 
 Hence, the analysis focus on identifying which specific geographical regions within the province act as tourism hotspots.
 
-More details are available in this [notebook](SouthTyrol/Tourism/notebooks/Tourism_in_South_Tyrol.ipynb)
-and static examples of the interactive visualisations are showcased below:
-
 ![alt text](SouthTyrol/Tourism/assets/density_map.png)
